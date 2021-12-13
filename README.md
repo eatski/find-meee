@@ -1,6 +1,4 @@
-# Exprcess Rust SampleApp
-This is a sample application that uses a library I created called [Exprocess](https://github.com/itskihaga/exprocess-rust).
-Bug reports, etc. can be submitted via Github Issue.
+# Find Meee!!!
 
 # Development
 ## Install Modules
@@ -21,6 +19,3 @@ npm run emu
 
 ## Open
 localhost:8080
-
-# Url
-https://rollrole.firebaseapp.com/
