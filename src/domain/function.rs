@@ -7,38 +7,77 @@ use crate::domain::model::{Hint, HintId, Player, PlayerId};
 use super::model::{BoardState, PlayerKnowledges};
 
 pub struct InitCommand {
-    players: Vec<InitPlayer>,
+    pub players: Vec<InitPlayer>,
+    pub hints_num: usize,
 }
 
 pub struct InitPlayer {
-    name: String,
-    password: String,
-    hints: Vec<String>,
+    pub name: String,
+    pub password: String,
+    pub hints: Vec<String>,
 }
 
-pub fn init<R: Rng + Clone>(init: InitCommand,rng: &mut R) -> BoardState {
-    let players: HashMap<PlayerId,InitPlayer> = init.players.into_iter().enumerate().map(|(index,player)| (PlayerId(index),player)).collect();
-    let ids : Vec<_> = players.into_keys().collect();
-    let player_to_target = shuffle_shift(&ids, Clone::clone, rng);
-    fn init_player(player: InitPlayer, target: PlayerId, hints: &HashMap<HintId, Hint>) -> Player {
-        Player {
-            name: player.name,
-            target,
-            password: player.password,
-            knowledges: todo!(),
-        }
+pub fn init<R: Rng + Clone>(init: InitCommand, rng: &mut R) -> BoardState {
+    let players_num = init.players.len();
+    let mut players_id = Vec::with_capacity(players_num);
+    let mut players_hints = Vec::with_capacity(players_num);
+    let mut players_meta = Vec::with_capacity(players_num);
+
+    for (index, init) in init.players.into_iter().enumerate() {
+        let id = PlayerId(index);
+        players_id.push(id.clone());
+        players_hints.push((
+            id.clone(),
+            init.hints.into_iter().map(|text| Hint { text }).collect(),
+        ));
+        players_meta.push((id, init.name, init.password));
     }
-    todo!()
+
+    let mut player_2_target = shuffle_shift(&players_id, Clone::clone, rng);
+    let (hints, mut players_hints) = extract_dictionary(players_hints, HintId);
+    let mut knowledges = hand_out_hints(|| players_hints.iter(), init.hints_num, &player_2_target, rng);
+    BoardState {
+        hints,
+        players: players_meta.into_iter().map(|(id,name,password)| {
+            (
+                id.clone(),
+                Player {
+                    name,
+                    password,
+                    hints: players_hints.remove(&id).expect("TODO"),
+                    target: player_2_target.remove(&id).expect("TODO"),
+                    knowledges: knowledges.remove(&id).expect("TODO"),
+                },
+            )
+        }).collect(),
+    }
 }
 
-fn hand_out_hints<R: Rng + Clone>(
-    players: &Vec<(PlayerId, Vec<HintId>)>,
+fn extract_dictionary<K: Eq + Hash, Item, Id: Clone + Eq + Hash, F: Fn(usize) -> Id>(
+    inputs: Vec<(K, Vec<Item>)>,
+    create_id: F,
+) -> (HashMap<Id, Item>, HashMap<K, Vec<Id>>) {
+    let mut dictionary = HashMap::with_capacity(inputs.iter().flat_map(|(_, vec)| vec).count());
+    let mut lists = HashMap::with_capacity(inputs.len());
+    for (key, items) in inputs.into_iter() {
+        let mut ids = Vec::with_capacity(items.len());
+        for hint in items.into_iter() {
+            let id = create_id(dictionary.len());
+            dictionary.insert(id.clone(), hint);
+            ids.push(id);
+        }
+        lists.insert(key, ids);
+    }
+    (dictionary, lists)
+}
+
+fn hand_out_hints<'a,R: Rng + Clone,Iter: Iterator<Item=(&'a PlayerId, &'a Vec<HintId>)>,F: Fn() -> Iter>(
+    players: F,
     hints_num: usize,
     player_2_target: &PlayerToTarget,
     rng: &mut R,
 ) -> HashMap<PlayerId, PlayerKnowledges> {
-    let converted = players
-        .iter()
+    let converted = players()
         .map(|(player, hints)| {
             let mut hints: Vec<_> = hints.iter().map(|hint| (player, hint)).collect();
             hints.shuffle(rng);
@@ -47,13 +86,20 @@ fn hand_out_hints<R: Rng + Clone>(
         .collect();
     let mut separeted = cross_2d_vec(&converted, hints_num);
     let first = separeted.remove(0);
-    let others = separeted.into_iter().map(|set| shuffle_shift(&set,|(p,_)| p.clone(), &mut rng.clone()));
-    players
-        .iter()
+    let others = separeted
+        .into_iter()
+        .map(|set| shuffle_shift(&set, |(p, _)| p.clone(), &mut rng.clone()));
+    players()
         .map(|(player, _)| {
-            let target = player_2_target.get(player).unwrap();
-            let (_,target_hint) = first.iter().find(|(player,_)| *player == target).expect("TODO");
-            let others = others.clone().map(|hints| hints.get(target).expect("TODO").1.clone()).collect();
+            let target = player_2_target.get(player).expect("TODO");
+            let (_, target_hint) = first
+                .iter()
+                .find(|(player, _)| player == &target)
+                .expect("TODO");
+            let others = others
+                .clone()
+                .map(|hints| hints.get(target).expect("TODO").1.clone())
+                .collect();
             (
                 player.clone(),
                 PlayerKnowledges {
@@ -67,7 +113,11 @@ fn hand_out_hints<R: Rng + Clone>(
 
 type PlayerToTarget = HashMap<PlayerId, PlayerId>;
 
-fn shuffle_shift<T : Clone, K: Eq + Hash,F: Fn(&T) -> K, R: Rng>(vec: &Vec<T>, to_key:F, rng: &mut R) -> HashMap<K, T> {
+fn shuffle_shift<T: Clone, K: Eq + Hash, F: Fn(&T) -> K, R: Rng>(
+    vec: &Vec<T>,
+    to_key: F,
+    rng: &mut R,
+) -> HashMap<K, T> {
     let mut cloned = vec.clone();
     cloned.shuffle(rng);
     cloned
@@ -103,10 +153,11 @@ fn cross_2d_vec<T: Clone>(vec: &Vec<Vec<T>>, innner_len: usize) -> Vec<Vec<T>> {
 }
 
 #[cfg(test)]
-mod test {
+mod test_simple {
+
     use rand::rngs::mock::StepRng;
 
-    use super::{cross_2d_vec, shuffle_shift};
+    use super::{cross_2d_vec, extract_dictionary, shuffle_shift};
 
     #[test]
     fn test_cross_2d_vec() {
@@ -127,4 +178,92 @@ mod test {
         assert!(assertion(vec![0, 1, 2], StepRng::new(0, 1)),);
         assert!(assertion(vec![0, 1, 2, 3, 4], StepRng::new(0, 2)),);
     }
+
+    #[test]
+    fn test_extract_dictionary() {
+        assert_eq!(
+            extract_dictionary(
+                vec![("A", vec!["a", "b", "c"]), ("B", vec!["d", "e", "f"])],
+                usize::from
+            ),
+            (
+                [(0, "a"), (1, "b"), (2, "c"), (3, "d"), (4, "e"), (5, "f")].into(),
+                [("A", vec![0, 1, 2]), ("B", vec![3, 4, 5])].into()
+            )
+        )
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use std::collections::{HashSet, HashMap};
+
+    use super::{init, InitCommand, InitPlayer};
+    use mytil::validate_no_duplicate;
+    use rand::{thread_rng,Rng};
+
+    #[test]
+    fn test_init() {
+        fn assertion<R: Rng + Clone>(rng: &mut R) {
+            let state = init(InitCommand 
+                { 
+                    players: vec![
+                        InitPlayer {
+                            name: "hoge".to_owned(),
+                            password: "123".to_owned(),
+                            hints: vec!["A".to_owned(),"B".to_owned(),"C".to_owned()]
+                        },
+                        InitPlayer {
+                            name: "fuga".to_owned(),
+                            password: "456".to_owned(),
+                            hints: vec!["D".to_owned(),"E".to_owned(),"F".to_owned()]
+                        },
+                        InitPlayer {
+                            name: "piyo".to_owned(),
+                            password: "789".to_owned(),
+                            hints: vec!["G".to_owned(),"H".to_owned(),"I".to_owned()]
+                        }
+                    ], 
+                    hints_num: 3 
+                },
+                rng
+            );
+            // ヒントはもれなく辞書に格納されているか
+            assert_eq!(
+                state.hints.values().map(|e| e.text.as_str()).collect::<HashSet<&str>>(),
+                ["A","B","C","D","E","F","G","H","I"].into()
+            );
+            // プレイヤーが自分の指定した名前、合言葉を持っているか
+            assert_eq!(
+                state.players.values().map(|p| (p.name.as_str(),p.password.as_str())).collect::<HashSet<_>>(),
+                [("hoge","123"),("fuga","456"),("piyo","789")].into()
+            );
+            // プレイヤーが自分の指定したヒントを持っているか
+            assert_eq!(
+                state.players.values().map(|p| (p.name.as_str(),p.hints.iter().map(|hint| state.hints.get(hint).unwrap().text.as_str()).collect::<HashSet<_>>())).collect::<HashMap<_,_>>(),
+                [("hoge",["A","B","C"].into()),("fuga",["D","E","F"].into()),("piyo",["G","H","I"].into())].into()
+            );
+            // ターゲットに重複がないか
+            assert!(validate_no_duplicate(state.players.values().map(|p| &p.target)));
+            for (id,player) in state.players.iter() {
+                assert!(state.players.contains_key(&player.target));
+                assert_ne!(id,&player.target);
+                let target_id = &player.target;
+                let target_hint = &player.knowledges.target;
+                let target = state.players.get(target_id).unwrap();
+                assert!(target.hints.contains(target_hint));
+                assert!(!player.knowledges.others.iter().any(|hint| target.hints.contains(hint)))
+            }
+        }
+        // FIXME: 冪等性が確保できてない
+        let mut rng = thread_rng();
+        for _ in 0..1000 {
+            assertion(&mut rng);
+        }
+        
+        
+    }
+
+    
 }
