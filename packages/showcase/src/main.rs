@@ -7,6 +7,7 @@ use presentation::{
 };
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
+use presentation::playing::password_form::PasswordForm;
 
 pub struct Config;
 
@@ -40,6 +41,11 @@ impl GalleryConfig for Config {
                     ("host", picture(|| todo!())),
                 ]),
             ),
+            ("playing", picture(|| {
+                html! {
+                    <PasswordForm hints_num=3 submit=Callback::noop()/>
+                }
+            })),
             ("sleep", picture(sleep)),
         ])
     }

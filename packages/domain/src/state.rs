@@ -23,18 +23,18 @@ impl ExprocessCore for AppCore {
         match (state,command) {
             (AppState::Blank, AppCommand::InitProfile(profiles)) => AppResult::InitProfile(profiles),
             (AppState::Blank, _) => panic!(),
-            (AppState::StandbyPassword(profiles,inputs), AppCommand::PushPassword(input)) => {
+            (AppState::StandbyPassword(profiles,inputs,setting), AppCommand::PushPassword(input)) => {
                 if inputs.len() + 1 < profiles.players.len() {
                     return AppResult::PushPassword(input)
                 }
                 let inputs: Vec<_> = inputs.iter().cloned().chain([input].into_iter()).collect();
                 let board = init(InitBoard {
                     players: inputs,
-                    hints_num: 3,
+                    hints_num: setting.hints_num,
                 },&mut thread_rng());
                 AppResult::InitBoard(board)
             },
-            (AppState::StandbyPassword(_, _), _) => panic!(),
+            (AppState::StandbyPassword(_, _, _), _) => panic!(),
             (AppState::Board(_board,_profiles), AppCommand::InitProfile(_)) => todo!(),
             (AppState::Board(_, _), AppCommand::PushPassword(_)) => todo!(),
         }
@@ -44,16 +44,16 @@ impl ExprocessCore for AppCore {
         match (&mut state,result) {
             (AppState::Blank, AppResult::InitProfile(profiles)) => {
                 let len = profiles.players.len();
-                *state = AppState::StandbyPassword(profiles,Vec::with_capacity(len));
+                *state = AppState::StandbyPassword(profiles,Vec::with_capacity(len),Setting::recommend());
             },
             (AppState::Blank,_) => panic!(),
-            (AppState::StandbyPassword(profiles,_), AppResult::InitBoard(board)) => {
+            (AppState::StandbyPassword(profiles,_,_), AppResult::InitBoard(board)) => {
                 *state = AppState::Board(board,profiles.clone());
             },
-            (AppState::StandbyPassword(_,inputs), AppResult::PushPassword(input)) => {
+            (AppState::StandbyPassword(_,inputs,_), AppResult::PushPassword(input)) => {
                 inputs.push(input);
             },
-            (AppState::StandbyPassword(_,_), _) => panic!() ,
+            (AppState::StandbyPassword(_,_,_), _) => panic!() ,
             (AppState::Board(_, _), AppResult::InitProfile(_)) => todo!(),
             (AppState::Board(_, _), AppResult::PushPassword(_)) => todo!(),
             (AppState::Board(_, _), AppResult::InitBoard(_)) => todo!(),
@@ -69,9 +69,23 @@ pub enum AppCommand {
 
 pub enum AppState {
     Blank,
-    StandbyPassword(Profiles,Vec<InitPlayer>),
+    StandbyPassword(Profiles,Vec<InitPlayer>,Setting),
     Board(BoardState,Profiles)
 }
+
+#[derive(Clone)]
+pub struct Setting {
+    pub hints_num: usize
+}
+
+impl Setting {
+    pub fn recommend() -> Self {
+        Self {
+            hints_num: 3
+        }
+    }
+}
+
 
 #[derive(Serialize,Deserialize,Clone)]
 pub enum AppResult {

@@ -6,10 +6,11 @@ use domain::{
     state::AppCommand,
 };
 use js_bridge::fetch_members;
-use presentation::loading::loading;
+use presentation::{loading::loading, playing::hand::Hand};
 use yew::prelude::*;
 mod model;
 use crate::containers::main::model::{app_state_to_view_state, Msg, ViewState};
+use presentation::playing::password_form::PasswordForm;
 
 pub struct Main {
     runner: Runner,
@@ -102,8 +103,13 @@ impl Component for Main {
     fn view(&self) -> Html {
         match &self.state {
             ViewState::Blank => loading(),
-            ViewState::Board(_) => todo!(),
+            ViewState::Board(board) => {
+                match board {
+                    model::BoardView::SelectPlacingHint { hints } => html! { <Hand hints=hints.clone()/>},
+                }
+            },
             ViewState::TODO(json ) => html! {json},
+            ViewState::InputPassword(callback,settings) => html! {<PasswordForm submit=callback hints_num=settings.hints_num/>},
         }
     }
 }
