@@ -1,7 +1,5 @@
 pub mod state;
 pub mod repository;
-pub mod model;
-pub mod function;
 
 pub type Runner = exprocess::client::Runner<state::AppCore,repository::RepositoryError>;
 

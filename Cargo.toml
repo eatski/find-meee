@@ -14,7 +14,8 @@ members = [
     "libs/cafeteria",
     "packages/presentation",
     "packages/showcase",
-    "packages/js_bridge"
+    "packages/js_bridge",
+    "packages/domain"
 ]
 
 [profile.release]

@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::Hash, iter::repeat};
 
 use rand::{prelude::SliceRandom, Rng};
 
-use crate::domain::model::{Hint, HintId, Player, PlayerId};
+use crate::model::{Hint, HintId, Player, PlayerId};
 
 use super::model::{BoardState, PlayerKnowledges};
 
