@@ -6,10 +6,11 @@ use crate::model::PlayerId;
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct PlayerProfile {
+    pub id: PlayerId,
     pub display_name: String,
 }
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Profiles {
-    pub players: HashMap<PlayerId,PlayerProfile>
+    pub players: HashMap<String,PlayerProfile>
 }

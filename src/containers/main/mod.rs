@@ -1,14 +1,15 @@
-use crate::{
-    domain::{
-        repository::RepositoryError, start,Runner,
-    },
-};
+use crate::domain::{repository::RepositoryError, start, Runner};
 
+use domain::{
+    model::PlayerId,
+    profile::{PlayerProfile, Profiles},
+    state::AppCommand,
+};
 use js_bridge::fetch_members;
-use presentation::{loading::loading};
+use presentation::loading::loading;
 use yew::prelude::*;
 mod model;
-use crate::containers::main::model::{app_state_to_view_state,ViewState,Msg};
+use crate::containers::main::model::{app_state_to_view_state, Msg, ViewState};
 
 pub struct Main {
     runner: Runner,
@@ -38,15 +39,15 @@ impl Component for Main {
             props.room_id.clone(),
             Box::new(move |_, state| {
                 let state = app_state_to_view_state(
-                    &state, 
-                    is_host, 
+                    &state,
+                    is_host,
                     your_id.as_str(),
-                    &link_listener.callback(|e| e)
+                    &link_listener.callback(|e| e),
                 );
                 link_listener.send_message(Msg::UpdateState(state))
             }),
             Box::new(move |err| match err {
-                RepositoryError::UnExpected => link_on_error.emit(())
+                RepositoryError::UnExpected => link_on_error.emit(()),
             }),
         );
         Main {
@@ -61,19 +62,35 @@ impl Component for Main {
         match msg {
             Msg::UpdateState(state) => {
                 if matches!(state, ViewState::Blank) && self.props.is_host {
-                    let _link = self.link.clone();
-                    let on_error =  self.props.on_error.clone();
+                    let link = self.link.clone();
+                    let on_error = self.props.on_error.clone();
                     fetch_members(
                         self.props.room_id.as_str(),
-                        move |_members| {
-                            
+                        move |members| {
+                            let profiles = Profiles {
+                                players: members
+                                    .into_iter()
+                                    .enumerate()
+                                    .map(|(index, member)| {
+                                        (
+                                            member.id.to_string(),
+                                            PlayerProfile {
+                                                id: PlayerId(index),
+                                                display_name: member.name.to_string(),
+                                            },
+                                        )
+                                    })
+                                    .collect(),
+                            };
+                            let command = AppCommand::InitProfile(profiles);
+                            link.send_message(Msg::PushCommand(command))
                         },
-                        move || on_error.clone().emit(())
+                        move || on_error.clone().emit(()),
                     );
                 }
                 self.state = state
             }
-            Msg::PushCommand(command) => self.runner.dispatch(command)
+            Msg::PushCommand(command) => self.runner.dispatch(command),
         };
         true
     }
@@ -85,7 +102,8 @@ impl Component for Main {
     fn view(&self) -> Html {
         match &self.state {
             ViewState::Blank => loading(),
-            ViewState::Board(_) => todo!()
+            ViewState::Board(_) => todo!(),
+            ViewState::TODO(json ) => html! {json},
         }
     }
 }
