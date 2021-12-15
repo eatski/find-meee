@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct BoardState {
     pub hints: HashMap<HintId,Hint>,
     pub players: HashMap<PlayerId,Player>
@@ -8,10 +10,10 @@ pub struct BoardState {
 
 pub type Hints =  HashMap<HintId,Hint>;
 
-#[derive(Eq,Hash,Clone,PartialEq,Debug)]
+#[derive(Eq,Hash,Clone,PartialEq,Debug,Serialize,Deserialize)]
 pub struct PlayerId(pub usize);
 
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Player {
     pub name: String,
     pub password: String,
@@ -20,16 +22,16 @@ pub struct Player {
     pub knowledges: PlayerKnowledges
 }
 
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct PlayerKnowledges {
     pub target: HintId,
     pub others:  Vec<HintId>
 }
 
-#[derive(Eq,Hash,Clone,PartialEq,Debug)]
+#[derive(Eq,Hash,Clone,PartialEq,Debug,Serialize,Deserialize)]
 pub struct HintId(pub usize);
 
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Hint {
     pub text: String
 }

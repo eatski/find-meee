@@ -1,12 +1,11 @@
 use crate::{
     domain::{
-        repository::RepositoryError, start, state::AppCommand, state::Member,
-        state::PickCommand, state::Role, Runner,
+        repository::RepositoryError, start,Runner,
     },
 };
 
 use js_bridge::fetch_members;
-use presentation::{before_role::{FormInputs, before_roll_guest, before_roll_host}, loading::loading, rolled::rolled};
+use presentation::{loading::loading};
 use yew::prelude::*;
 mod model;
 use crate::containers::main::model::{app_state_to_view_state,ViewState,Msg};
@@ -62,21 +61,12 @@ impl Component for Main {
         match msg {
             Msg::UpdateState(state) => {
                 if matches!(state, ViewState::Blank) && self.props.is_host {
-                    let link = self.link.clone();
+                    let _link = self.link.clone();
                     let on_error =  self.props.on_error.clone();
                     fetch_members(
                         self.props.room_id.as_str(),
-                        move |members| {
-                            let msg = Msg::PushCommand(AppCommand::Init(
-                                members
-                                    .iter()
-                                    .map(|member| Member {
-                                        name: String::from(member.name),
-                                        id: String::from(member.id),
-                                    })
-                                    .collect(),
-                            ));
-                            link.send_message(msg);
+                        move |_members| {
+                            
                         },
                         move || on_error.clone().emit(())
                     );
@@ -95,25 +85,7 @@ impl Component for Main {
     fn view(&self) -> Html {
         match &self.state {
             ViewState::Blank => loading(),
-            ViewState::Standby { members, host_form } => {
-                match host_form {
-                    Some(on_submit) => before_roll_host(
-                        members,
-                        &on_submit.reform(
-                            |inputs: FormInputs| PickCommand { roles: inputs.into_iter().map(|input| (input.num,Role {name: input.name})).collect() }
-                        )
-                    ),
-                    None => before_roll_guest(members),
-                }
-            }
-            ViewState::Picked(list) => {
-                let (you, your_role) = list
-                    .iter()
-                    .find(move |(member, _)| member.id == self.props.your_id)
-                    .expect("No Player Matches");
-
-                rolled(&you.name,&your_role.name)
-            }
+            ViewState::Board(_) => todo!()
         }
     }
 }

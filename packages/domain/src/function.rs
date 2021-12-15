@@ -1,16 +1,19 @@
 use std::{collections::HashMap, hash::Hash, iter::repeat};
 
 use rand::{prelude::SliceRandom, Rng};
+use serde::{Serialize, Deserialize};
 
 use crate::model::{Hint, HintId, Player, PlayerId};
 
 use super::model::{BoardState, PlayerKnowledges};
 
+#[derive(Serialize,Deserialize,Clone)]
 pub struct InitCommand {
     pub players: Vec<InitPlayer>,
     pub hints_num: usize,
 }
 
+#[derive(Serialize,Deserialize,Clone)]
 pub struct InitPlayer {
     pub name: String,
     pub password: String,

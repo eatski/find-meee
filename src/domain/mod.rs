@@ -1,4 +1,4 @@
-pub mod state;
+use domain::state;
 pub mod repository;
 
 pub type Runner = exprocess::client::Runner<state::AppCore,repository::RepositoryError>;

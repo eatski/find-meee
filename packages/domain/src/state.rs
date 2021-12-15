@@ -1,5 +1,6 @@
 use exprocess::core::ExprocessCore;
 use rand::thread_rng;
+use serde::{Serialize, Deserialize};
 
 use crate::{model::BoardState, function::{InitCommand, init}};
 
@@ -35,6 +36,7 @@ impl ExprocessCore for AppCore {
     }
 }
 
+#[derive(Serialize,Deserialize,Clone)]
 pub enum AppCommand {
     Init(InitCommand)
 }
@@ -43,6 +45,7 @@ pub enum AppState {
     Blank,Board(BoardState)
 }
 
+#[derive(Serialize,Deserialize,Clone)]
 pub enum AppResult {
     Init(BoardState)
 }
