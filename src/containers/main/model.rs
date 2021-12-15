@@ -10,7 +10,7 @@ pub enum ViewState {
 pub fn app_state_to_view_state(app: &AppState, is_host: bool, your_id: &str,callback: &Callback<Msg>) -> ViewState {
     match app {
         AppState::Blank => ViewState::Blank,
-        AppState::Board(board) => ViewState::Board(board.clone()),
+        AppState::Board(board,_) => ViewState::Board(board.clone()),
         AppState::StandbyPassword(_, _) => todo!(),
     }
 }
