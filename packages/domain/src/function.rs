@@ -8,32 +8,31 @@ use crate::model::{Hint, HintId, Player, PlayerId};
 use super::model::{BoardState, PlayerKnowledges};
 
 #[derive(Serialize,Deserialize,Clone)]
-pub struct InitCommand {
+pub struct InitBoard {
     pub players: Vec<InitPlayer>,
     pub hints_num: usize,
 }
 
 #[derive(Serialize,Deserialize,Clone)]
 pub struct InitPlayer {
-    pub name: String,
+    pub id: PlayerId,
     pub password: String,
     pub hints: Vec<String>,
 }
 
-pub fn init<R: Rng + Clone>(init: InitCommand, rng: &mut R) -> BoardState {
+pub fn init<R: Rng + Clone>(init: InitBoard, rng: &mut R) -> BoardState {
     let players_num = init.players.len();
     let mut players_id = Vec::with_capacity(players_num);
     let mut players_hints = Vec::with_capacity(players_num);
-    let mut players_meta = Vec::with_capacity(players_num);
+    let mut players_base = Vec::with_capacity(players_num);
 
-    for (index, init) in init.players.into_iter().enumerate() {
-        let id = PlayerId(index);
-        players_id.push(id.clone());
+    for player in init.players.into_iter() {
+        players_id.push(player.id.clone());
         players_hints.push((
-            id.clone(),
-            init.hints.into_iter().map(|text| Hint { text }).collect(),
+            player.id.clone(),
+            player.hints.into_iter().map(|text| Hint { text }).collect(),
         ));
-        players_meta.push((id, init.name, init.password));
+        players_base.push(( player.id, player.password));
     }
 
     let mut player_2_target = shuffle_shift(&players_id, Clone::clone, rng);
@@ -41,11 +40,10 @@ pub fn init<R: Rng + Clone>(init: InitCommand, rng: &mut R) -> BoardState {
     let mut knowledges = hand_out_hints(|| players_hints.iter(), init.hints_num, &player_2_target, rng);
     BoardState {
         hints,
-        players: players_meta.into_iter().map(|(id,name,password)| {
+        players: players_base.into_iter().map(|(id,password)| {
             (
                 id.clone(),
                 Player {
-                    name,
                     password,
                     hints: players_hints.remove(&id).expect("TODO"),
                     target: player_2_target.remove(&id).expect("TODO"),
@@ -202,28 +200,30 @@ mod test {
 
     use std::collections::{HashSet, HashMap};
 
-    use super::{init, InitCommand, InitPlayer};
+    use crate::model::PlayerId;
+
+    use super::{init, InitBoard, InitPlayer};
     use mytil::validate_no_duplicate;
     use rand::{thread_rng,Rng};
 
     #[test]
     fn test_init() {
         fn assertion<R: Rng + Clone>(rng: &mut R) {
-            let state = init(InitCommand 
+            let state = init(InitBoard 
                 { 
                     players: vec![
                         InitPlayer {
-                            name: "hoge".to_owned(),
+                            id: PlayerId(0),
                             password: "123".to_owned(),
                             hints: vec!["A".to_owned(),"B".to_owned(),"C".to_owned()]
                         },
                         InitPlayer {
-                            name: "fuga".to_owned(),
+                            id: PlayerId(1),
                             password: "456".to_owned(),
                             hints: vec!["D".to_owned(),"E".to_owned(),"F".to_owned()]
                         },
                         InitPlayer {
-                            name: "piyo".to_owned(),
+                            id: PlayerId(2),
                             password: "789".to_owned(),
                             hints: vec!["G".to_owned(),"H".to_owned(),"I".to_owned()]
                         }
@@ -239,13 +239,13 @@ mod test {
             );
             // プレイヤーが自分の指定した名前、合言葉を持っているか
             assert_eq!(
-                state.players.values().map(|p| (p.name.as_str(),p.password.as_str())).collect::<HashSet<_>>(),
-                [("hoge","123"),("fuga","456"),("piyo","789")].into()
+                state.players.iter().map(|(id,p)| (id.0,p.password.as_str())).collect::<HashSet<_>>(),
+                [(0,"123"),(1,"456"),(2,"789")].into()
             );
             // プレイヤーが自分の指定したヒントを持っているか
             assert_eq!(
-                state.players.values().map(|p| (p.name.as_str(),p.hints.iter().map(|hint| state.hints.get(hint).unwrap().text.as_str()).collect::<HashSet<_>>())).collect::<HashMap<_,_>>(),
-                [("hoge",["A","B","C"].into()),("fuga",["D","E","F"].into()),("piyo",["G","H","I"].into())].into()
+                state.players.iter().map(|(id,p)| (id.0,p.hints.iter().map(|hint| state.hints.get(hint).unwrap().text.as_str()).collect::<HashSet<_>>())).collect::<HashMap<_,_>>(),
+                [(0,["A","B","C"].into()),(1,["D","E","F"].into()),(2,["G","H","I"].into())].into()
             );
             // ターゲットに重複がないか
             assert!(validate_no_duplicate(state.players.values().map(|p| &p.target)));

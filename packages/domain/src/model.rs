@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct BoardState {
     pub hints: HashMap<HintId,Hint>,
-    pub players: HashMap<PlayerId,Player>
+    pub players: HashMap<PlayerId,Player>,
 }
 
 pub type Hints =  HashMap<HintId,Hint>;
@@ -15,7 +15,6 @@ pub struct PlayerId(pub usize);
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct Player {
-    pub name: String,
     pub password: String,
     pub hints: Vec<HintId>,
     pub target: PlayerId,
