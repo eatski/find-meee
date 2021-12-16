@@ -1,5 +1,5 @@
 use presentation::playing::{
-    hand::{HandHints, HintType},
+    hand::{HandHints, HintType, Hand, HandHint},
     password_form::Form as PasswordForm,
 };
 use yew::prelude::*;
@@ -42,6 +42,13 @@ pub fn app_state_to_view_state(
                     get_hint(&player.knowledges.target).text.clone(),
                     HintType::Target,
                 )])
+                .map(|(text,typ)| {
+                    HandHint {
+                        text,
+                        typ,
+                        select: callback.reform(|_| todo!())
+                    }
+                })
                 .collect();
             ViewState::Board(BoardView::SelectPlacingHint { hints })
         }

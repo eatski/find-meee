@@ -1,4 +1,6 @@
 use cafeteria::yew::{dir, picture, Gallery, GalleryConfig, GalleryModel};
+use presentation::playing::hand::{HandHint, HandHints, HintType};
+use presentation::playing::{password_form::PasswordForm,hand::Hand};
 use presentation::{
     home::home,
     meeting::{meeting_guest, GuestForm},
@@ -7,7 +9,6 @@ use presentation::{
 };
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
-use presentation::playing::password_form::PasswordForm;
 
 pub struct Config;
 
@@ -41,11 +42,32 @@ impl GalleryConfig for Config {
                     ("host", picture(|| todo!())),
                 ]),
             ),
-            ("playing", picture(|| {
-                html! {
-                    <PasswordForm hints_num=3 submit=Callback::noop()/>
-                }
-            })),
+            (
+                "playing",
+                dir([
+                    (
+                        "password",
+                        picture(|| {
+                            html! {
+                                <PasswordForm hints_num=3 submit=Callback::noop()/>
+                            }
+                        }),
+                    ),
+                    (
+                        "select placing",
+                        picture(|| {
+                            let hints : HandHints = vec![
+                                HandHint { text: "あああ".into() , typ: HintType::Target, select: Callback::noop() },
+                                HandHint { text: "いいい".into() , typ: HintType::None, select: Callback::noop() },
+                                HandHint { text: "ううう".into() , typ: HintType::None, select: Callback::noop() }
+                            ];
+                            html! {
+                                <Hand hints=hints/>
+                            }
+                        }),
+                    ),
+                ]),
+            ),
             ("sleep", picture(sleep)),
         ])
     }

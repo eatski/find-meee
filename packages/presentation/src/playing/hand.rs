@@ -1,4 +1,4 @@
-use yew::{Component, Properties, html};
+use yew::{Component, Properties, html, Callback};
 
 pub struct Hand {
     props: Props
@@ -9,7 +9,14 @@ pub struct Props {
     pub hints: HandHints
 }
 
-pub type HandHints = Vec<(String,HintType)>;
+pub type HandHints = Vec<HandHint>;
+
+#[derive(Clone)]
+pub struct HandHint {
+    pub text: String,
+    pub typ: HintType,
+    pub select: Callback<()>
+}
 
 #[derive(Debug,Clone)]
 pub enum HintType {
@@ -36,8 +43,20 @@ impl Component for Hand {
     }
 
     fn view(&self) -> yew::Html {
+        let mut hints = self.props.hints.clone();
+        hints.sort_by_key(|hint| !matches!(hint.typ,HintType::Target));
+        let li = hints.iter().map(|hint| {
+            html! {
+                <li onclick=hint.select.reform(|_| ()) class="box is-clickable">
+                    {if matches!(hint.typ,HintType::Target) { html! {<label class="label">{"ターゲット"}</label>}} else {html!{}}}
+                    <a>{hint.text.as_str()}</a>
+                </li>
+            }
+        });
         html! {
-            format!("{:?}",self.props.hints)
+            <ul>
+                {for li}
+            </ul>
         }
     }
 }
