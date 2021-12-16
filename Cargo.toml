@@ -1,5 +1,5 @@
 [package]
-name = "roll-role"
+name = "find-meee"
 version = "0.1.0"
 edition = "2018"
 
@@ -14,7 +14,8 @@ members = [
     "libs/cafeteria",
     "packages/presentation",
     "packages/showcase",
-    "packages/js_bridge"
+    "packages/js_bridge",
+    "packages/domain"
 ]
 
 [profile.release]
@@ -35,3 +36,4 @@ webutil = { path = "./libs/webutil"}
 mytil = { path = "./libs/mytil"}
 presentation = {path = "./packages/presentation"}
 js_bridge = {path = "./packages/js_bridge"}
+domain = {path = "./packages/domain"}

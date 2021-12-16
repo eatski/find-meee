@@ -4,10 +4,10 @@ use presentation::{
     meeting::{meeting_guest, GuestForm},
     members::Member,
     sleep::sleep,
-    before_role::HostForm,
 };
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
+use presentation::playing::password_form::PasswordForm;
 
 pub struct Config;
 
@@ -41,9 +41,11 @@ impl GalleryConfig for Config {
                     ("host", picture(|| todo!())),
                 ]),
             ),
-            ("role", dir([
-                ("form",picture(|| html!{<HostForm on_submit=Callback::noop() members_num=6/>}))
-            ])),
+            ("playing", picture(|| {
+                html! {
+                    <PasswordForm hints_num=3 submit=Callback::noop()/>
+                }
+            })),
             ("sleep", picture(sleep)),
         ])
     }

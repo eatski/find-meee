@@ -6,7 +6,7 @@ use serde_json::{self,Error as SerdeErr};
 use serde::{Deserialize};
 
 use exprocess::client::{Record, RecordSync, Repository};
-use super::state::{AppCommand, AppCore, AppResult};
+use domain::state::{AppCommand, AppCore, AppResult};
 
 pub enum RepositoryError {
     UnExpected

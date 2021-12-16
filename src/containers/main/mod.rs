@@ -1,15 +1,16 @@
-use crate::{
-    domain::{
-        repository::RepositoryError, start, state::AppCommand, state::Member,
-        state::PickCommand, state::Role, Runner,
-    },
-};
+use crate::domain::{repository::RepositoryError, start, Runner};
 
+use domain::{
+    model::PlayerId,
+    profile::{PlayerProfile, Profiles},
+    state::AppCommand,
+};
 use js_bridge::fetch_members;
-use presentation::{before_role::{FormInputs, before_roll_guest, before_roll_host}, loading::loading, rolled::rolled};
+use presentation::{loading::loading, playing::hand::Hand};
 use yew::prelude::*;
 mod model;
-use crate::containers::main::model::{app_state_to_view_state,ViewState,Msg};
+use crate::containers::main::model::{app_state_to_view_state, Msg, ViewState};
+use presentation::playing::password_form::PasswordForm;
 
 pub struct Main {
     runner: Runner,
@@ -39,15 +40,15 @@ impl Component for Main {
             props.room_id.clone(),
             Box::new(move |_, state| {
                 let state = app_state_to_view_state(
-                    &state, 
-                    is_host, 
+                    &state,
+                    is_host,
                     your_id.as_str(),
-                    &link_listener.callback(|e| e)
+                    &link_listener.callback(|e| e),
                 );
                 link_listener.send_message(Msg::UpdateState(state))
             }),
             Box::new(move |err| match err {
-                RepositoryError::UnExpected => link_on_error.emit(())
+                RepositoryError::UnExpected => link_on_error.emit(()),
             }),
         );
         Main {
@@ -63,27 +64,34 @@ impl Component for Main {
             Msg::UpdateState(state) => {
                 if matches!(state, ViewState::Blank) && self.props.is_host {
                     let link = self.link.clone();
-                    let on_error =  self.props.on_error.clone();
+                    let on_error = self.props.on_error.clone();
                     fetch_members(
                         self.props.room_id.as_str(),
                         move |members| {
-                            let msg = Msg::PushCommand(AppCommand::Init(
-                                members
-                                    .iter()
-                                    .map(|member| Member {
-                                        name: String::from(member.name),
-                                        id: String::from(member.id),
+                            let profiles = Profiles {
+                                players: members
+                                    .into_iter()
+                                    .enumerate()
+                                    .map(|(index, member)| {
+                                        (
+                                            member.id.to_string(),
+                                            PlayerProfile {
+                                                id: PlayerId(index),
+                                                display_name: member.name.to_string(),
+                                            },
+                                        )
                                     })
                                     .collect(),
-                            ));
-                            link.send_message(msg);
+                            };
+                            let command = AppCommand::InitProfile(profiles);
+                            link.send_message(Msg::PushCommand(command))
                         },
-                        move || on_error.clone().emit(())
+                        move || on_error.clone().emit(()),
                     );
                 }
                 self.state = state
             }
-            Msg::PushCommand(command) => self.runner.dispatch(command)
+            Msg::PushCommand(command) => self.runner.dispatch(command),
         };
         true
     }
@@ -95,25 +103,13 @@ impl Component for Main {
     fn view(&self) -> Html {
         match &self.state {
             ViewState::Blank => loading(),
-            ViewState::Standby { members, host_form } => {
-                match host_form {
-                    Some(on_submit) => before_roll_host(
-                        members,
-                        &on_submit.reform(
-                            |inputs: FormInputs| PickCommand { roles: inputs.into_iter().map(|input| (input.num,Role {name: input.name})).collect() }
-                        )
-                    ),
-                    None => before_roll_guest(members),
+            ViewState::Board(board) => {
+                match board {
+                    model::BoardView::SelectPlacingHint { hints } => html! { <Hand hints=hints.clone()/>},
                 }
-            }
-            ViewState::Picked(list) => {
-                let (you, your_role) = list
-                    .iter()
-                    .find(move |(member, _)| member.id == self.props.your_id)
-                    .expect("No Player Matches");
-
-                rolled(&you.name,&your_role.name)
-            }
+            },
+            ViewState::TODO(json ) => html! {json},
+            ViewState::InputPassword(callback,settings) => html! {<PasswordForm submit=callback hints_num=settings.hints_num/>},
         }
     }
 }
