@@ -5,7 +5,7 @@ use presentation::playing::{
 use yew::prelude::*;
 
 use domain::{
-    function::InitPlayer,
+    init::InitPlayer,
     model::HintId,
     state::{AppCommand, AppState, Setting},
 };

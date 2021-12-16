@@ -4,7 +4,7 @@ use exprocess::core::ExprocessCore;
 use rand::thread_rng;
 use serde::{Serialize, Deserialize};
 
-use crate::{model::{BoardState}, function::{InitBoard, init, InitPlayer}, profile::{Profiles}};
+use crate::{model::{BoardState}, init::{InitBoard, init, InitPlayer}, profile::{Profiles}};
 
 pub struct AppCore;
 

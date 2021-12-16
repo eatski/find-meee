@@ -1,4 +1,4 @@
-pub mod function;
+pub mod init;
 pub mod model;
 pub mod state;
 pub mod profile;
